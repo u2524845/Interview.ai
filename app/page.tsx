@@ -246,7 +246,7 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link href="/sign-up">
+              <Link href="/upgrade">
                 <Button className="w-full gradient-bg border-0 hover:opacity-90 transition-opacity">
                   Start Pro Trial
                   <ArrowRight className="h-4 w-4 ml-1" />

@@ -131,7 +131,16 @@
 }
 
 @layer utilities {
+  /* Light mode: dark vivid purples so text is readable on white background */
   .gradient-text {
+    background: linear-gradient(135deg, #6d28d9, #9333ea, #c026d3);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Dark mode: bright lavender so text pops on dark background */
+  .dark .gradient-text {
     background: linear-gradient(135deg, #a78bfa, #c084fc, #e879f9);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
