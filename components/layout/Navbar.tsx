@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useUser, SignInButton, UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ProBadge } from "@/components/ProBadge";
 import { BrainCircuit } from "lucide-react";
 
 export default function Navbar() {
@@ -32,6 +33,7 @@ export default function Navbar() {
                   Start Interview
                 </Button>
               </Link>
+              <ProBadge />
               <ThemeToggle />
               <UserButton />
             </>

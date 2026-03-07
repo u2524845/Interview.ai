@@ -17,6 +17,8 @@ import {
   TrendingUp,
   BarChart3,
   Zap,
+  Crown,
+  CreditCard,
 } from "lucide-react";
 
 interface Session {
@@ -55,13 +57,32 @@ function ScoreDisplay({ score }: { score: number | null }) {
 export default function DashboardPage() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
+  const [plan, setPlan] = useState<"free" | "pro">("free");
+  const [billingLoading, setBillingLoading] = useState(false);
 
   useEffect(() => {
     fetch("/api/dashboard")
       .then((r) => r.json())
       .then((d: { sessions: Session[] }) => setSessions(d.sessions))
       .finally(() => setLoading(false));
+    fetch("/api/user/plan")
+      .then((r) => r.json())
+      .then((d) => setPlan(d.plan === "pro" ? "pro" : "free"))
+      .catch(() => {});
   }, []);
+
+  async function openBillingPortal() {
+    setBillingLoading(true);
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (data.url) window.location.href = data.url;
+    } catch {
+      // ignore
+    } finally {
+      setBillingLoading(false);
+    }
+  }
 
   const completedSessions = sessions.filter((s) => s.status === "completed");
   const avgScore =
@@ -98,6 +119,40 @@ export default function DashboardPage() {
             </Button>
           </Link>
         </div>
+
+        {/* Plan Banner */}
+        {plan === "pro" ? (
+          <div className="flex items-center justify-between p-4 rounded-xl gradient-bg text-white mb-8">
+            <div className="flex items-center gap-3">
+              <Crown className="h-5 w-5" />
+              <div>
+                <div className="font-semibold text-sm">Pro Plan Active</div>
+                <div className="text-white/70 text-xs">Unlimited interviews, all features unlocked</div>
+              </div>
+            </div>
+            <button
+              onClick={openBillingPortal}
+              disabled={billingLoading}
+              className="flex items-center gap-1.5 text-xs font-medium text-white/80 hover:text-white transition-colors"
+            >
+              <CreditCard className="h-3.5 w-3.5" />
+              {billingLoading ? "Loading..." : "Manage Billing"}
+            </button>
+          </div>
+        ) : (
+          <Link href="/upgrade" className="block mb-8">
+            <div className="flex items-center justify-between p-4 rounded-xl border-2 border-primary/30 bg-primary/5 hover:bg-primary/10 transition-colors">
+              <div className="flex items-center gap-3">
+                <Crown className="h-5 w-5 text-primary" />
+                <div>
+                  <div className="font-semibold text-sm">Upgrade to Pro</div>
+                  <div className="text-muted-foreground text-xs">Get unlimited interviews for $9/month</div>
+                </div>
+              </div>
+              <ArrowRight className="h-4 w-4 text-primary" />
+            </div>
+          </Link>
+        )}
 
         {/* Stats Cards */}
         {sessions.length > 0 && (

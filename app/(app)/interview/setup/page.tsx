@@ -239,8 +239,7 @@ export default function InterviewSetupPage() {
                 size="lg"
                 className="w-full gap-2 gradient-bg border-0 text-white hover:opacity-90 transition-opacity"
                 onClick={() => {
-                  // TODO: Integrate Stripe checkout
-                  window.open("/#pricing", "_blank");
+                  router.push("/upgrade");
                 }}
               >
                 <Crown className="h-4 w-4" />
