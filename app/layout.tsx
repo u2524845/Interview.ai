@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import { ClerkProvider } from "@clerk/nextjs";
+import { dark } from "@clerk/themes";
+import { ThemeProvider } from "@/components/ThemeProvider";
 import "./globals.css";
 
 const geist = Geist({
@@ -20,10 +22,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <ClerkProvider>
-      <html lang="en">
+    <ClerkProvider appearance={{ baseTheme: dark }}>
+      <html lang="en" suppressHydrationWarning>
         <body className={`${geist.variable} font-sans antialiased`}>
-          {children}
+          <ThemeProvider>
+            {children}
+          </ThemeProvider>
         </body>
       </html>
     </ClerkProvider>

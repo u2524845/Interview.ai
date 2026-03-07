@@ -67,7 +67,7 @@ export async function POST(
     },
   });
 
-  const allAnswered = session?.questions.every((q) => q.answer !== null);
+  const allAnswered = session?.questions.every((q: { answer: unknown }) => q.answer !== null);
 
   if (allAnswered && session) {
     const scores = session.questions

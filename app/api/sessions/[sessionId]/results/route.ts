@@ -7,6 +7,7 @@ export async function GET(
   req: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
+  try {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -38,12 +39,16 @@ export async function GET(
   // Generate AI summary if session is complete
   let summary = null;
   if (session.status === "completed") {
-    const scores = session.questions
-      .map((q) => q.answer?.feedback?.score ?? 0)
-      .filter((s) => s > 0);
+    try {
+      const scores = session.questions
+        .map((q) => q.answer?.feedback?.score ?? 0)
+        .filter((s) => s > 0);
 
-    if (scores.length > 0) {
-      summary = await generateSessionSummary(session.role, session.level, scores);
+      if (scores.length > 0) {
+        summary = await generateSessionSummary(session.role, session.level, scores);
+      }
+    } catch {
+      // Summary generation failed — return results without it
     }
   }
 
@@ -68,4 +73,8 @@ export async function GET(
     session: { ...session, questions },
     summary,
   });
+  } catch (err) {
+    console.error("[results] Unexpected error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }

@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateInterviewQuestions } from "@/lib/claude";
+import { canStartInterview } from "@/lib/subscription";
 
 export async function POST(req: Request) {
   const { userId } = await auth();
@@ -20,6 +21,17 @@ export async function POST(req: Request) {
     update: {},
     create: { clerkId: userId, email: `${userId}@placeholder.com` },
   });
+
+  // Check subscription limits
+  const subscription = await canStartInterview(user.id);
+  if (!subscription.allowed) {
+    return NextResponse.json({
+      error: "FREE_LIMIT_REACHED",
+      message: "You've used your free interview. Upgrade to Pro for unlimited practice.",
+      sessionsUsed: subscription.sessionsUsed,
+      limit: subscription.limit,
+    }, { status: 403 });
+  }
 
   // Generate questions with Claude
   let questions: string[];
