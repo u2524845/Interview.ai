@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String             @id @default(cuid())
+  clerkId   String             @unique
+  email     String             @unique
+  name      String?
+  plan      String             @default("free")
+  createdAt DateTime           @default(now())
+  sessions  InterviewSession[]
+}
+
+model InterviewSession {
+  id           String     @id @default(cuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role         String
+  level        String
+  status       String     @default("in_progress")
+  overallScore Float?
+  createdAt    DateTime   @default(now())
+  completedAt  DateTime?
+  questions    Question[]
+}
+
+model Question {
+  id         String           @id @default(cuid())
+  sessionId  String
+  session    InterviewSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  content    String
+  orderIndex Int
+  answer     Answer?
+}
+
+model Answer {
+  id          String    @id @default(cuid())
+  questionId  String    @unique
+  question    Question  @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  content     String    @db.Text
+  submittedAt DateTime  @default(now())
+  feedback    Feedback?
+}
+
+model Feedback {
+  id             String @id @default(cuid())
+  answerId       String @unique
+  answer         Answer @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  score          Float
+  strengths      String @db.Text
+  improvements   String @db.Text
+  overallComment String @db.Text
+}
