@@ -41,8 +41,8 @@ export async function GET(
   if (session.status === "completed") {
     try {
       const scores = session.questions
-        .map((q) => q.answer?.feedback?.score ?? 0)
-        .filter((s) => s > 0);
+        .map((q: { answer?: { feedback?: { score?: number } | null } | null }): number => q.answer?.feedback?.score ?? 0)
+        .filter((s: number) => s > 0);
 
       if (scores.length > 0) {
         summary = await generateSessionSummary(session.role, session.level, scores);
@@ -53,7 +53,8 @@ export async function GET(
   }
 
   // Parse JSON strings back to arrays
-  const questions = session.questions.map((q) => ({
+  type SessionQuestion = (typeof session.questions)[number];
+  const questions = session.questions.map((q: SessionQuestion) => ({
     ...q,
     answer: q.answer
       ? {
