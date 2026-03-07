@@ -71,8 +71,8 @@ export async function POST(
 
   if (allAnswered && session) {
     const scores = session.questions
-      .map((q: { answer?: { feedback?: { score?: number } | null } | null }) => q.answer?.feedback?.score ?? 0)
-      .filter((s) => s > 0);
+      .map((q: { answer?: { feedback?: { score?: number } | null } | null }): number => q.answer?.feedback?.score ?? 0)
+      .filter((s: number) => s > 0);
     const overallScore = scores.reduce((a, b) => a + b, 0) / scores.length;
 
     await prisma.interviewSession.update({
