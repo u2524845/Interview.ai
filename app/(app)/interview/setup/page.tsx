@@ -29,8 +29,9 @@ export default function InterviewSetupPage() {
         body: JSON.stringify({ role: selectedRole, level: selectedLevel }),
       });
 
+      const data = await res.json().catch(() => ({ error: "Server error. Please try again." }));
+
       if (!res.ok) {
-        const data = await res.json();
         if (data.error === "FREE_LIMIT_REACHED") {
           setShowUpgrade(true);
           setLoading(false);
@@ -39,7 +40,7 @@ export default function InterviewSetupPage() {
         throw new Error(data.message ?? data.error ?? "Failed to create session");
       }
 
-      const { sessionId } = await res.json();
+      const { sessionId } = data;
       router.push(`/interview/${sessionId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
