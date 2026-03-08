@@ -7,92 +7,97 @@ export async function POST(
   req: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const { sessionId } = await params;
-  const { questionId, content } = await req.json();
+    const { sessionId } = await params;
+    const { questionId, content } = await req.json();
 
-  if (!questionId || !content?.trim()) {
-    return NextResponse.json({ error: "questionId and content are required" }, { status: 400 });
-  }
+    if (!questionId || !content?.trim()) {
+      return NextResponse.json({ error: "questionId and content are required" }, { status: 400 });
+    }
 
-  const user = await prisma.user.findUnique({ where: { clerkId: userId } });
-  if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const user = await prisma.user.findUnique({ where: { clerkId: userId } });
+    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-  // Verify ownership
-  const question = await prisma.question.findFirst({
-    where: { id: questionId, session: { id: sessionId, userId: user.id } },
-    include: { session: true },
-  });
+    // Verify ownership
+    const question = await prisma.question.findFirst({
+      where: { id: questionId, session: { id: sessionId, userId: user.id } },
+      include: { session: true },
+    });
 
-  if (!question) {
-    return NextResponse.json({ error: "Question not found" }, { status: 404 });
-  }
+    if (!question) {
+      return NextResponse.json({ error: "Question not found" }, { status: 404 });
+    }
 
-  // Get AI feedback
-  const feedbackResult = await evaluateAnswer(
-    question.session.role,
-    question.session.level,
-    question.content,
-    content
-  );
+    // Get AI feedback
+    const feedbackResult = await evaluateAnswer(
+      question.session.role,
+      question.session.level,
+      question.content,
+      content
+    );
 
-  // Save answer + feedback
-  const answer = await prisma.answer.create({
-    data: {
-      questionId,
-      content,
-      feedback: {
-        create: {
-          score: feedbackResult.score,
-          strengths: JSON.stringify(feedbackResult.strengths),
-          improvements: JSON.stringify(feedbackResult.improvements),
-          overallComment: feedbackResult.overallComment,
+    // Save answer + feedback
+    const answer = await prisma.answer.create({
+      data: {
+        questionId,
+        content,
+        feedback: {
+          create: {
+            score: feedbackResult.score,
+            strengths: JSON.stringify(feedbackResult.strengths),
+            improvements: JSON.stringify(feedbackResult.improvements),
+            overallComment: feedbackResult.overallComment,
+          },
         },
       },
-    },
-    include: { feedback: true },
-  });
+      include: { feedback: true },
+    });
 
-  // Check if all questions are answered — if so, finalize session
-  const session = await prisma.interviewSession.findUnique({
-    where: { id: sessionId },
-    include: {
-      questions: {
-        include: { answer: { include: { feedback: true } } },
-      },
-    },
-  });
-
-  const allAnswered = session?.questions.every((q: { answer: unknown }) => q.answer !== null);
-
-  if (allAnswered && session) {
-    const scores = session.questions
-      .map((q: { answer?: { feedback?: { score?: number } | null } | null }): number => q.answer?.feedback?.score ?? 0)
-      .filter((s: number) => s > 0);
-    const overallScore = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
-
-    await prisma.interviewSession.update({
+    // Check if all questions are answered — if so, finalize session
+    const session = await prisma.interviewSession.findUnique({
       where: { id: sessionId },
-      data: {
-        status: "completed",
-        overallScore,
-        completedAt: new Date(),
+      include: {
+        questions: {
+          include: { answer: { include: { feedback: true } } },
+        },
       },
     });
-  }
 
-  return NextResponse.json({
-    answerId: answer.id,
-    feedback: {
-      score: feedbackResult.score,
-      strengths: feedbackResult.strengths,
-      improvements: feedbackResult.improvements,
-      overallComment: feedbackResult.overallComment,
-    },
-    isComplete: allAnswered,
-  });
+    const allAnswered = session?.questions.every((q: { answer: unknown }) => q.answer !== null);
+
+    if (allAnswered && session) {
+      const scores = session.questions
+        .map((q: { answer?: { feedback?: { score?: number } | null } | null }): number => q.answer?.feedback?.score ?? 0)
+        .filter((s: number) => s > 0);
+      const overallScore = scores.reduce((a: number, b: number) => a + b, 0) / scores.length;
+
+      await prisma.interviewSession.update({
+        where: { id: sessionId },
+        data: {
+          status: "completed",
+          overallScore,
+          completedAt: new Date(),
+        },
+      });
+    }
+
+    return NextResponse.json({
+      answerId: answer.id,
+      feedback: {
+        score: feedbackResult.score,
+        strengths: feedbackResult.strengths,
+        improvements: feedbackResult.improvements,
+        overallComment: feedbackResult.overallComment,
+      },
+      isComplete: allAnswered,
+    });
+  } catch (err) {
+    console.error("[answer/POST] Unexpected error:", err);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 }
